@@ -1,2 +1,3 @@
+# Remove image data
 *.jpg
-*.csv
+data/*.jpg
