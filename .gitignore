@@ -1,3 +1,6 @@
 # Remove image data
 *.jpg
 data/*.jpg
+
+# Remove model data
+*.pt
