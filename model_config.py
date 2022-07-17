@@ -1,6 +1,6 @@
 # Model configuration file
 
-CLASSES = ['0','1','2','3','4']
+CLASSES = ['ALB','BET','DOL','LAG','NoF','OTHER','SHARK','YFT']
 WEIGHTS_CLASS_IMBALANCE = False
 EARLYSTOP = True
 OPTIMIZER = 'Adam'
