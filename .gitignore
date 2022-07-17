@@ -2,5 +2,8 @@
 *.jpg
 data/*.jpg
 
+# Remove cache 
+*.pyc
+
 # Remove model data
 *.pt
