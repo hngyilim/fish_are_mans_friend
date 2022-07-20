@@ -77,7 +77,7 @@ def predict_proba(
     return formatted_predictions
 
 @st.cache(allow_output_mutation=True)
-def load_pretrained_model(device, path, model_name, classes):
+def load_pretrained_model(device, model_name, classes):
     """
     Loads pretrain model, freezes parameters and adds a final layer for transfer learning and ensuring output number of classes is the same
     :param device: torch.device('cpu') or torch.device('gpu')
@@ -87,7 +87,7 @@ def load_pretrained_model(device, path, model_name, classes):
     # Basic Model
     if model_name == 'vgg16':
         
-        model_ft = models.vgg16(path, pretrained=True)
+        model_ft = models.vgg16(pretrained=True)
         # Freeze model parameters
         for param in model_ft.parameters():
             param.requires_grad = False
@@ -107,15 +107,12 @@ def load_pretrained_model(device, path, model_name, classes):
         return model_ft
 
 with st.spinner('Model is being loaded..'):
-    PATH = Path(__file__).resolve().parent/'model'/'VGG16_v3_25_0.672.pt'
+    PATH = Path(__file__).resolve().parent.parent/'models'/'VGG16_v3_25_0.672.pt'
     # Use cuda to enable gpu usage for pytorch
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(device)
-    # load model
-    model_ft = load_pretrained_model(model_name='vgg16', classes=label_list, device=device)
-    model_ft.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
-    print(model_ft)
+    model_ft = torch.load(PATH,map_location=device)
     st.write(model_ft)
+
 
 st.write("""
          # Fishy Classification
@@ -140,11 +137,12 @@ def import_and_predict(image_data: Image.Image, model, k: int, index_to_label_di
         )
 
     actual_img = transform(image_data)
-    
+    actual_img = actual_img.unsqueeze(0) # add one dimension to the front to account for batch_size
+
     formatted_predictions = model(actual_img)
 
     st.write(formatted_predictions)
-    
+
     # model.eval()
     # output_tensor = model(actual_img)
     # prob_tensor = torch.nn.Softmax(dim=1)(output_tensor)
@@ -159,7 +157,7 @@ def import_and_predict(image_data: Image.Image, model, k: int, index_to_label_di
     #     formatted_predictions.append(
     #         (predicted_label, f"{predicted_perc:.3f}%"))
 
-    return formatted_predictions
+    # return formatted_predictions
 
 if file is None:
     st.text("Please upload an image file")
