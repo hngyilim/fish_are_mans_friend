@@ -33,6 +33,8 @@ label_list= [
     "YFT"
 ]
 
+MODEL_NAME = 'alexnet'
+
 def predict_proba(
         model,
         img: Image.Image,
@@ -111,8 +113,6 @@ with st.spinner('Model is being loaded..'):
     # Use cuda to enable gpu usage for pytorch
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_ft = torch.load(PATH,map_location=device)
-    st.write(model_ft)
-
 
 st.write("""
          # Fishy Classification
@@ -127,21 +127,25 @@ st.set_option('deprecation.showfileUploaderEncoding', False)
 @st.cache()
 def import_and_predict(image_data: Image.Image, model, k: int, index_to_label_dict: dict)-> list:
     
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.1),
-        transforms.RandomAffine(degrees=40, translate=None, scale=(1, 2), shear=15, resample=False, fillcolor=0),
-        transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]
-        )
-
+    if MODEL_NAME in 'vgg':
+        transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]
+                )
+    if MODEL_NAME in 'resnet' or MODEL_NAME in 'alexnet':
+        transform = transforms.Compose([
+                        transforms.Resize(256),
+                        transforms.CenterCrop(224),
+                        transforms.ToTensor(),
+                        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),]
+                    )
+                        
     actual_img = transform(image_data)
     actual_img = actual_img.unsqueeze(0) # add one dimension to the front to account for batch_size
 
     formatted_predictions = model(actual_img)
-
-    st.write(formatted_predictions)
+    return formatted_predictions
 
     # model.eval()
     # output_tensor = model(actual_img)
@@ -168,7 +172,8 @@ else:
     model_ft.eval()
     predictions = import_and_predict(image, model_ft, k = 3, index_to_label_dict = label_map)
 
-    st.write(predictions[0][0])
+    st.write(predictions)
+    st.write(label_map[int(torch.argmax(predictions))])
  
     print(
     "This image most likely belongs to {}."
