@@ -1,5 +1,6 @@
 streamlit
 torch
+pytorch
 torchvision
 numpy==1.21.6
 pathlib
