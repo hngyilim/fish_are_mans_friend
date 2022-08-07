@@ -66,7 +66,7 @@ MODEL_NAME = 'efficientnet'
 with st.spinner('Model is being loaded..'):
     PATH = Path(__file__).resolve().parent.parent/'models'/'efficientnet_10_25_full.pt'
     # Use cuda to enable gpu usage for pytorch
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     # if MODEL_NAME in 'efficientnet':
     #     efficientnet = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b4', pretrained=True)
 
