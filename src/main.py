@@ -58,22 +58,41 @@ fish_to_wiki  = {
 
 MODEL_NAME = 'efficientnet'
 
-# @st.cache()
-# def augment_model(efficientnet):
-#     efficientnet.classifier[-1] = nn.Linear(in_features=1792, out_features=len(label_map), bias=True)
-#     return efficientnet
+@st.cache()
+def augment_model(efficientnet):
+    efficientnet.classifier[-1] = nn.Linear(in_features=1792, out_features=len(label_map), bias=True)
+    return efficientnet
 
 with st.spinner('Model is being loaded..'):
-    PATH = Path(__file__).resolve().parent.parent/'models'/'efficientnet_10_25_full.pt'
+    PATH = Path(__file__).resolve().parent.parent/'models'/'efficientnet_03_full_state_dict.pt'
     # Use cuda to enable gpu usage for pytorch
     device = torch.device("cpu")
-    # if MODEL_NAME in 'efficientnet':
-    #     efficientnet = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b4', pretrained=True)
+    if MODEL_NAME in 'efficientnet':
+        efficientnet = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b4', pretrained=True)
 
-    #     model_ft = augment_model(efficientnet)
-    #     model_ft.load_state_dict(torch.load(PATH,map_location=device))
+        model_ft = augment_model(efficientnet)
+        model_ft.load_state_dict(torch.load(PATH,map_location=device))
 
-    model_ft = torch.load(PATH,map_location=device)
+    elif MODEL_NAME in 'vgg':
+        model_ft = models.vgg16(pretrained=True)
+        # Freeze model parameters
+        for param in model_ft.parameters():
+            param.requires_grad = False
+
+        # Change the final layer of VGG16 Model for Transfer Learning
+        # Here the size of each output sample is set to 5
+        fc_inputs = model_ft.classifier[-4].out_features
+        model_ft.classifier[-1] = nn.Sequential(
+            nn.Linear(fc_inputs, 256),
+            nn.ReLU(),
+            nn.Dropout(0.4),
+            nn.Linear(256, len(label_list))
+        )
+
+        model_ft.load_state_dict(torch.load(PATH,map_location=device))
+
+    else:
+        model_ft = torch.load(PATH,map_location=device)
 
 st.write("""
          # Endangered Fish Classification
