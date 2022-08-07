@@ -58,24 +58,22 @@ fish_to_wiki  = {
 
 MODEL_NAME = 'efficientnet'
 
-@st.cache()
-def augment_model(efficientnet):
-    efficientnet.classifier[-1] = nn.Linear(in_features=1792, out_features=len(label_map), bias=True)
-    return efficientnet
+# @st.cache()
+# def augment_model(efficientnet):
+#     efficientnet.classifier[-1] = nn.Linear(in_features=1792, out_features=len(label_map), bias=True)
+#     return efficientnet
 
 with st.spinner('Model is being loaded..'):
     PATH = Path(__file__).resolve().parent.parent/'models'/'efficientnet_10_25_full.pt'
     # Use cuda to enable gpu usage for pytorch
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
-    if MODEL_NAME in 'efficientnet':
-        efficientnet = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b4', pretrained=True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # if MODEL_NAME in 'efficientnet':
+    #     efficientnet = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b4', pretrained=True)
 
-        model_ft = augment_model(efficientnet)
-        model_ft.load_state_dict(torch.load(PATH,map_location=device))
-        
-    else:
-        model_ft = torch.load(PATH,map_location=device)
+    #     model_ft = augment_model(efficientnet)
+    #     model_ft.load_state_dict(torch.load(PATH,map_location=device))
+
+    model_ft = torch.load(PATH,map_location=device)
 
 st.write("""
          # Endangered Fish Classification
