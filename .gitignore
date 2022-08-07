@@ -1,7 +1,3 @@
-# Remove image data
-*.jpg
-data/*.jpg
-
 # Remove cache 
 *.pyc
 
