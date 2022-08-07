@@ -10,6 +10,7 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch import optim
+import pandas as pd
 
 label_map = {
     0: "ALB",
@@ -33,93 +34,56 @@ label_list= [
     "YFT"
 ]
 
-MODEL_NAME = 'alexnet'
+predicted_to_actual_dict = {
+    "ALB" : 'Albacore Tuna',
+    "BET" : 'Bigeye Tuna',
+    "DOL" : 'Dolphinfish, Mahi Mahi',
+    "LAG" : 'Opah, Moonfish',
+    "NoF" : 'No Fish',
+    "OTHER" : 'Fish present but not in target categories',
+    "SHARK" : 'Shark, including Silky & Shortfin Mako',
+    "YFT" : 'Yellowfin Tuna'
+    }
 
-def predict_proba(
-        model,
-        img: Image.Image,
-        k: int,
-        index_to_class_labels: dict,
-        show: bool = False
-        ):
-    """
-    Feeds single image through network and returns
-    top k predicted labels and probabilities
+fish_to_wiki  = {
+    0: "https://en.wikipedia.org/wiki/Albacore",
+    1: "https://en.wikipedia.org/wiki/Bigeye_tuna",
+    2: "https://en.wikipedia.org/wiki/Mahi-mahi",
+    3: "https://en.wikipedia.org/wiki/Opah",
+    4: "https://en.wikipedia.org/wiki/Fish",
+    5: "https://en.wikipedia.org/wiki/Fish",
+    6: "https://en.wikipedia.org/wiki/Shark",
+    7: "https://en.wikipedia.org/wiki/Yellowfin_tuna",
+    }
 
-    params
-    ---------------
-    img - PIL Image - Single image to feed through model
-    k - int - Number of top predictions to return
-    index_to_class_labels - dict - Dictionary
-        to map indices to class labels
-    show - bool - Whether or not to
-        display the image before prediction - default False
+MODEL_NAME = 'efficientnet'
 
-    returns
-    ---------------
-    formatted_predictions - list - List of top k
-        formatted predictions formatted to include a tuple of
-        1. predicted label, 2. predicted probability as str
-    """
-    
-    model.eval()
-    output_tensor = model(img)
-    prob_tensor = torch.nn.Softmax(dim=1)(output_tensor)
-    top_k = torch.topk(prob_tensor, k, dim=1)
-    probabilites = top_k.values.detach().numpy().flatten()
-    indices = top_k.indices.detach().numpy().flatten()
-    formatted_predictions = []
-
-    for pred_prob, pred_idx in zip(probabilites, indices):
-        predicted_label = index_to_class_labels[pred_idx].title()
-        predicted_perc = pred_prob * 100
-        formatted_predictions.append(
-            (predicted_label, f"{predicted_perc:.3f}%"))
-
-    return formatted_predictions
-
-@st.cache(allow_output_mutation=True)
-def load_pretrained_model(device, model_name, classes):
-    """
-    Loads pretrain model, freezes parameters and adds a final layer for transfer learning and ensuring output number of classes is the same
-    :param device: torch.device('cpu') or torch.device('gpu')
-    :param model_name: str ('available models are vgg16 ... )
-    :param classes: target classes 
-    """
-    # Basic Model
-    if model_name == 'vgg16':
-        
-        model_ft = models.vgg16(pretrained=True)
-        # Freeze model parameters
-        for param in model_ft.parameters():
-            param.requires_grad = False
-
-        # Change the final layer of VGG16 Model for Transfer Learning
-        # Here the size of each output sample is set to 5
-        fc_inputs = model_ft.classifier[-4].out_features
-        model_ft.classifier[-1] = nn.Sequential(
-            nn.Linear(fc_inputs, 256),
-            nn.ReLU(),
-            nn.Dropout(0.4),
-            nn.Linear(256, len(classes))
-        )
-
-        # Enable GPU usage for model weights
-        model_ft = model_ft.to(device)
-        return model_ft
+@st.cache()
+def augment_model(efficientnet):
+    efficientnet.classifier[-1] = nn.Linear(in_features=1792, out_features=len(label_map), bias=True)
+    return efficientnet
 
 with st.spinner('Model is being loaded..'):
-    PATH = Path(__file__).resolve().parent.parent/'models'/'VGG16_v3_25_0.672.pt'
+    PATH = Path(__file__).resolve().parent.parent/'models'/'efficientnet_10_25_full.pt'
     # Use cuda to enable gpu usage for pytorch
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model_ft = torch.load(PATH,map_location=device)
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+    if MODEL_NAME in 'efficientnet':
+        efficientnet = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b4', pretrained=True)
+
+        model_ft = augment_model(efficientnet)
+        model_ft.load_state_dict(torch.load(PATH,map_location=device))
+        
+    else:
+        model_ft = torch.load(PATH,map_location=device)
 
 st.write("""
-         # Fishy Classification
+         # Endangered Fish Classification
          """
          )
-
-file = st.file_uploader("Please upload your dear fishy file", type=["jpg","png"])
+st.write('Nearly half of the world depends on seafood for their main source of protein. In the Western and Central Pacific, where 60% of the world’s tuna is caught, illegal, unreported, and unregulated fishing practices are threatening marine ecosystems, global seafood supplies and local livelihoods. The Nature Conservancy is working with local, regional and global partners to preserve this fishery for the future.')
+st.write('Currently, the Conservancy is looking to the future by using cameras to dramatically scale the monitoring of fishing activities to fill critical science and compliance monitoring data gaps. Our trained model helps to identify when target endangered species have been caught by fishermen.')
+file = st.file_uploader("Please upload your fish image", type=["jpg","png"])
 
 
 st.set_option('deprecation.showfileUploaderEncoding', False)
@@ -133,7 +97,7 @@ def import_and_predict(image_data: Image.Image, model, k: int, index_to_label_di
                 transforms.ToTensor(),
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]
                 )
-    if MODEL_NAME in 'resnet' or MODEL_NAME in 'alexnet':
+    if MODEL_NAME in 'resnet' or MODEL_NAME in 'alexnet' or MODEL_NAME in 'efficientnet':
         transform = transforms.Compose([
                         transforms.Resize(256),
                         transforms.CenterCrop(224),
@@ -141,41 +105,50 @@ def import_and_predict(image_data: Image.Image, model, k: int, index_to_label_di
                         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),]
                     )
                         
-    actual_img = transform(image_data)
+    actual_img = transform(image_data).to(device)
     actual_img = actual_img.unsqueeze(0) # add one dimension to the front to account for batch_size
 
     formatted_predictions = model(actual_img)
     return formatted_predictions
 
-    # model.eval()
-    # output_tensor = model(actual_img)
-    # prob_tensor = torch.nn.Softmax(dim=1)(output_tensor)
-    # top_k = torch.topk(prob_tensor, k, dim=1)
-    # probabilites = top_k.values.detach().numpy().flatten()
-    # indices = top_k.indices.detach().numpy().flatten()
-    # formatted_predictions = []
-
-    # for pred_prob, pred_idx in zip(probabilites, indices):
-    #     predicted_label = label_map[pred_idx].title()
-    #     predicted_perc = pred_prob * 100
-    #     formatted_predictions.append(
-    #         (predicted_label, f"{predicted_perc:.3f}%"))
-
-    # return formatted_predictions
-
 if file is None:
-    st.text("Please upload an image file")
+    pass
 else:
     image = Image.open(file)
+
     st.image(image, use_column_width=True)
     
     model_ft.eval()
-    predictions = import_and_predict(image, model_ft, k = 3, index_to_label_dict = label_map)
+    predictions = import_and_predict(image, model_ft, k = 3, index_to_label_dict = label_map) 
 
-    st.write(predictions)
-    st.write(label_map[int(torch.argmax(predictions))])
- 
-    print(
-    "This image most likely belongs to {}."
-    .format(predictions[0][0])
-)
+    predicted_fish = label_map[int(torch.argmax(predictions))]
+    normalised_list = torch.nn.functional.softmax(predictions, dim = 1)
+    values, indices = torch.topk(normalised_list, 3)
+
+    st.title('The predicted fish is: ' + predicted_to_actual_dict[predicted_fish])
+
+    st.title('Here are the three most likely fish species(click for more info!)')
+    df = pd.DataFrame(data=np.zeros((3, 2)),
+                      columns=['Species', 'Confidence Level'],
+                      index=np.linspace(1, 3, 3, dtype=int))
+
+    # print(values.detach().numpy()[0][1])
+
+    for count, i in enumerate(values.detach().numpy()[0]):
+        x = int(indices.detach().numpy()[0][count])
+        df.iloc[count, 0] = f'<a href="{fish_to_wiki[x]}" target="_blank">{predicted_to_actual_dict[label_map[x]].title()}</a>'
+        df.iloc[count, 1] = np.format_float_positional(i, precision=8)
+
+    st.write(df.to_html(escape=False), unsafe_allow_html=True)
+    if predicted_fish not in ['OTHER', 'Nof']:
+
+        PATH_fish = Path(__file__).resolve().parent/'data'/'fishes_ref'/ (predicted_fish + '.jpg')
+        st.title('Here is a sample image of ' + predicted_to_actual_dict[predicted_fish])
+        reference_image = Image.open(PATH_fish)
+        st.image(reference_image)
+    
+
+
+
+    
+    
