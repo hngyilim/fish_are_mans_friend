@@ -137,7 +137,7 @@ else:
         df.iloc[count, 0] = f'<a href="{fish_to_wiki[x]}" target="_blank">{predicted_to_actual_dict[label_map[x]].title()}</a>'
         df.iloc[count, 1] = np.format_float_positional(i, precision=8)
 
-    st.write(df.to_html(escape=False), unsafe_allow_html=True)
+    st.write(df.to_html(escape=False, justify = 'left'), unsafe_allow_html=True)
     if predicted_fish not in ['OTHER', 'Nof']:
 
         PATH_fish = Path(__file__).resolve().parent.parent/'data'/'fishes_ref'/ (predicted_fish + '.jpg')
