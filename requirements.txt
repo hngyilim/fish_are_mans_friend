@@ -4,5 +4,5 @@ Pillow==6.2.0
 numpy==1.21.6
 pathlib
 pathlib2==2.3.5
-torch==1.10.1+cu113
+torch==1.10.1
 pandas==0.25.1
