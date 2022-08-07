@@ -64,7 +64,7 @@ def augment_model(efficientnet):
     return efficientnet
 
 with st.spinner('Model is being loaded..'):
-    PATH = Path(__file__).resolve().parent.parent/'models'/'efficientnet_03_full_state_dict.pt'
+    PATH = Path(__file__).resolve().parent.parent/'models'/'efficientnet_10_25_full.pt'
     # Use cuda to enable gpu usage for pytorch
     device = torch.device("cpu")
     if MODEL_NAME in 'efficientnet':
