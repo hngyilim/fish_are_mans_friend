@@ -140,7 +140,7 @@ else:
     st.write(df.to_html(escape=False), unsafe_allow_html=True)
     if predicted_fish not in ['OTHER', 'Nof']:
 
-        PATH_fish = Path(__file__).resolve().parent/'data'/'fishes_ref'/ (predicted_fish + '.jpg')
+        PATH_fish = Path(__file__).resolve().parent.parent/'data'/'fishes_ref'/ (predicted_fish + '.jpg')
         st.title('Here is a sample image of ' + predicted_to_actual_dict[predicted_fish])
         reference_image = Image.open(PATH_fish)
         st.image(reference_image)
